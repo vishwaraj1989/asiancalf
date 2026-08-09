@@ -1,0 +1,66 @@
+openapi: 3.0.0
+info:
+  title: AsianCalf API
+  version: '0.1.0'
+  description: OpenAPI spec for core AsianCalf backend (generated from routes)
+servers:
+  - url: http://localhost:5000
+paths:
+  /api/auth/register:
+    post:
+      summary: Register user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Created
+
+  /api/auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+      responses:
+        '200':
+          description: OK
+
+  /api/products:
+    get:
+      summary: List products
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create product (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Created
+
+  /api/orders:
+    post:
+      summary: Create order (protected)
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Created
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
