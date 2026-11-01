@@ -31,7 +31,7 @@ exports.createOrder = async (req, res, next) => {
     const discount = 0;
     const total = subtotal + deliveryCharge - discount;
 
-    const orderNumber = generateOrderNumber();
+    const orderNumber = await generateOrderNumber();
     const items = cart.items.map((i) => ({ product: i.product._id, name: i.product.name, sku: i.product.sku, qty: i.qty, price: i.price }));
 
     // non-transactional: decrement stock with checks, create order, delete cart; rollback on failures

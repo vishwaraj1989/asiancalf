@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema(
     mobile: { type: String },
     email: { type: String, required: true, unique: true, index: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['customer', 'admin'], default: 'customer' },
+    role: { type: String, enum: ['customer', 'seller', 'admin'], default: 'customer' },
     addresses: [addressSchema],
     isActive: { type: Boolean, default: true },
   },

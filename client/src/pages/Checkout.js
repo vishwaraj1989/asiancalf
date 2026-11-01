@@ -1,88 +1,25 @@
-import React, { useContext, useEffect, useState } from 'react';
-import CartContext from '../context/CartContext';
-import AuthContext from '../context/AuthContext';
-import api from '../services/api';
-import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
-import Radio from '@mui/material/Radio';
-import RadioGroup from '@mui/material/RadioGroup';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import { useNavigate } from 'react-router-dom';
+import { mediaUrl } from '../utils/api';
+import { Box, Button, Divider, Paper, Typography } from '@mui/material';
+import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded';
+import { Link as RouterLink } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
+
+const priceFor = (item) => Number(item.salePrice || item.discountPrice || item.price || 0);
+const linksFor = (item) => (item.marketplaceUrls?.length ? item.marketplaceUrls : item.marketplaceUrl ? [item.marketplaceUrl] : []).filter((url) => /^https?:\/\//i.test(url));
+const marketplaceName = (url, index) => {
+  try { return new URL(url).hostname.replace(/^www\./, '').split('.')[0] || `Marketplace ${index + 1}`; }
+  catch { return `Marketplace ${index + 1}`; }
+};
 
 export default function Checkout() {
-  const { cart, loadCart } = useContext(CartContext);
-  const { user } = useContext(AuthContext);
-  const [addresses, setAddresses] = useState([]);
-  const [selected, setSelected] = useState('');
-  const [adding, setAdding] = useState(false);
-  const [newAddr, setNewAddr] = useState({ fullName: '', mobile: '', house: '', street: '', area: '', city: '', state: '', pinCode: '' });
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    api.get('/addresses').then((res) => {
-      setAddresses(res.data.data || []);
-      const def = (res.data.data || []).find((a) => a.isDefault);
-      if (def) setSelected(def._id);
-    }).catch(() => setAddresses([]));
-  }, []);
-
-  const addAddress = async () => {
-    try {
-      const res = await api.post('/addresses', newAddr);
-      setAddresses(res.data.data);
-      setAdding(false);
-      setNewAddr({ fullName: '', mobile: '', house: '', street: '', area: '', city: '', state: '', pinCode: '' });
-    } catch (err) {
-      alert('Failed to add address');
-    }
-  };
-
-  const placeOrder = async () => {
-    if (!selected) return alert('Select an address');
-    try {
-      const res = await api.post('/orders', { addressId: selected, paymentMethod: 'COD' });
-      await loadCart();
-      alert('Order placed: ' + res.data.data.orderNumber);
-      navigate('/');
-    } catch (err) {
-      alert('Failed to place order');
-    }
-  };
-
-  if (!cart) return <Typography>Loading cart...</Typography>;
-  if (!cart.items || cart.items.length === 0) return <Typography>Your cart is empty</Typography>;
-
-  return (
-    <Box>
-      <Typography variant="h5">Checkout</Typography>
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="h6">Select address</Typography>
-        <RadioGroup value={selected} onChange={(e) => setSelected(e.target.value)}>
-          {addresses.map((a) => (
-            <FormControlLabel key={a._id} value={a._id} control={<Radio />} label={`${a.fullName}, ${a.house}, ${a.city} - ${a.pinCode}`} />
-          ))}
-        </RadioGroup>
-        {adding ? (
-          <Box>
-            <TextField label="Full name" value={newAddr.fullName} onChange={(e) => setNewAddr({ ...newAddr, fullName: e.target.value })} fullWidth />
-            <TextField label="Mobile" value={newAddr.mobile} onChange={(e) => setNewAddr({ ...newAddr, mobile: e.target.value })} fullWidth />
-            <TextField label="House/Flat" value={newAddr.house} onChange={(e) => setNewAddr({ ...newAddr, house: e.target.value })} fullWidth />
-            <Button onClick={addAddress}>Save address</Button>
-          </Box>
-        ) : (
-          <Button onClick={() => setAdding(true)}>Add new address</Button>
-        )}
-      </Box>
-
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h6">Order Summary</Typography>
-        {cart.items.map((i) => (
-          <div key={i._id}>{i.name || (i.product && i.product.name)} x {i.qty} — ₹{i.price}</div>
-        ))}
-        <Button variant="contained" sx={{ mt: 2 }} onClick={placeOrder}>Place order (COD)</Button>
-      </Box>
-    </Box>
-  );
+  const { items } = useCart();
+  const subtotal = items.reduce((total, item) => total + priceFor(item) * item.qty, 0);
+  if (!items.length) return <Box className="page-container"><Paper className="amazon-cart-main"><Typography variant="h4" gutterBottom>Checkout</Typography><Typography sx={{ mb: 2 }}>Your cart is empty.</Typography><Button component={RouterLink} to="/" variant="contained">Continue shopping</Button></Paper></Box>;
+  return <Box className="page-container"><Box className="checkout-layout"><Paper className="checkout-products"><Typography variant="h4" gutterBottom>Review your order</Typography><Typography color="text.secondary" sx={{ mb: 2 }}>Choose a marketplace or send the seller an inquiry about any product.</Typography><Divider />
+    {items.map((item) => {
+      const image = item.primaryImage || item.images?.[0];
+      const links = linksFor(item);
+      return <Box key={item._id} className="checkout-item"><Box className="checkout-image">{image && <img src={mediaUrl(image)} alt={item.name} />}</Box><Box sx={{ minWidth: 0 }}><Typography variant="h6">{item.name}</Typography><Typography variant="body2" color="text.secondary">{[item.department, item.productCategory, item.subcategory].filter(Boolean).join(' › ')}</Typography><Typography sx={{ mt: 1 }}>Quantity: <strong>{item.qty}</strong></Typography><Typography className="checkout-price">₹{(priceFor(item) * item.qty).toLocaleString('en-IN')}</Typography><Button component={RouterLink} to={`/inquiry?product=${item._id}`} variant="outlined" sx={{ mt: 1.5 }}>Purchase from seller</Button>{links.length > 0 && <Box className="marketplace-links"><Box className="marketplace-heading"><Typography variant="body2" fontWeight={700}>Or purchase from a marketplace</Typography><Typography variant="caption">Choose a marketplace below</Typography></Box><Box className="marketplace-actions">{links.map((url, index) => <Button key={url} component="a" href={url} target="_blank" rel="noopener noreferrer" variant="contained" className="marketplace-button" endIcon={<LaunchRoundedIcon />}>Click to purchase on {marketplaceName(url, index)}</Button>)}</Box></Box>}</Box></Box>;
+    })}
+  </Paper><Paper className="checkout-summary"><Typography variant="h6">Order Summary</Typography><Divider sx={{ my: 2 }} /><Typography>Items: {items.reduce((total, item) => total + item.qty, 0)}</Typography><Typography sx={{ fontSize: '1.35rem', mt: 1 }}>Order total: <strong>₹{subtotal.toLocaleString('en-IN')}</strong></Typography><Button component={RouterLink} to="/cart" fullWidth variant="outlined" sx={{ mt: 2 }}>Back to cart</Button></Paper></Box></Box>;
 }

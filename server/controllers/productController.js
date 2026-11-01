@@ -9,6 +9,7 @@ exports.listProducts = async (req, res, next) => {
 
     const filter = { active: true };
     if (req.query.category) filter.category = req.query.category;
+    if (req.query.featured) filter.featured = req.query.featured === 'true' || req.query.featured === '1';
     if (req.query.availability === 'inStock') filter.stock = { $gt: 0 };
     if (req.query.priceMin || req.query.priceMax) {
       filter.price = {};
@@ -57,12 +58,18 @@ exports.createProduct = async (req, res, next) => {
       salePrice: req.body.salePrice ? Number(req.body.salePrice) : undefined,
       stock: req.body.stock !== undefined ? Number(req.body.stock) : undefined,
       category: req.body.category,
+      department: req.body.department,
+      productCategory: req.body.productCategory,
+      subcategory: req.body.subcategory,
       description: req.body.description,
       weight: req.body.weight !== undefined ? Number(req.body.weight) : undefined,
       brand: req.body.brand,
+      marketplaceUrl: req.body.marketplaceUrl,
+      marketplaceUrls: Array.isArray(req.body.marketplaceUrls) ? req.body.marketplaceUrls.filter(Boolean) : [],
       featured: req.body.featured,
       bestseller: req.body.bestseller,
       active: req.body.active,
+      createdBy: req.user.id,
     };
 
     if (!payload.name || !payload.sku || !payload.price) {
@@ -87,7 +94,7 @@ exports.createProduct = async (req, res, next) => {
 exports.updateProduct = async (req, res, next) => {
   try {
     const updates = {};
-    const fields = ['name', 'sku', 'price', 'salePrice', 'stock', 'category', 'description', 'weight', 'brand', 'featured', 'bestseller', 'active'];
+    const fields = ['name', 'sku', 'price', 'salePrice', 'stock', 'category', 'department', 'productCategory', 'subcategory', 'description', 'primaryImage', 'weight', 'brand', 'marketplaceUrl', 'marketplaceUrls', 'featured', 'bestseller', 'active'];
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
         updates[field] = field === 'price' || field === 'salePrice' || field === 'stock' || field === 'weight'
@@ -118,7 +125,16 @@ exports.deleteProduct = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
-    await product.remove();
+    // Remove locally-uploaded product files along with the product record.
+    const fs = require('fs');
+    const path = require('path');
+    const uploadsDir = path.resolve(__dirname, '..', 'uploads', 'products');
+    [...product.images, product.video].forEach((media) => {
+      if (!media?.startsWith('/uploads/products/')) return;
+      const filePath = path.join(uploadsDir, path.basename(media));
+      fs.unlink(filePath, () => {});
+    });
+    await product.deleteOne();
     res.json({ success: true, message: 'Product deleted' });
   } catch (err) {
     next(err);
@@ -130,8 +146,40 @@ exports.uploadImages = async (req, res, next) => {
     if (!req.files || !req.files.length) return res.status(400).json({ success: false, message: 'No files uploaded' });
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    const existingCount = product.images.length;
+    if (existingCount + req.files.length > 5) {
+      const fs = require('fs');
+      req.files.forEach((file) => fs.unlink(file.path, () => {}));
+      return res.status(400).json({ success: false, message: `A product can have a maximum of 5 images. It already has ${existingCount}.` });
+    }
     const urls = req.files.map((f) => `/uploads/products/${f.filename}`);
     product.images = product.images.concat(urls);
+    const selectedIndex = Number.parseInt(req.body.primaryImageIndex, 10);
+    if (Number.isInteger(selectedIndex) && selectedIndex >= 0 && selectedIndex < urls.length) {
+      product.primaryImage = urls[selectedIndex];
+    } else if (!product.primaryImage) {
+      product.primaryImage = product.images[0];
+    }
+    await product.save();
+    res.json({ success: true, data: product });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.uploadVideo = async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'No video uploaded' });
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      require('fs').unlink(req.file.path, () => {});
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    if (product.video?.startsWith('/uploads/products/')) {
+      const oldPath = require('path').join(__dirname, '..', 'uploads', 'products', require('path').basename(product.video));
+      require('fs').unlink(oldPath, () => {});
+    }
+    product.video = `/uploads/products/${req.file.filename}`;
     await product.save();
     res.json({ success: true, data: product });
   } catch (err) {

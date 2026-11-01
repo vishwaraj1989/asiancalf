@@ -1,19 +1,12 @@
-import React from 'react';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import { Link } from 'react-router-dom';
-
+import { apiUrl, mediaUrl } from '../utils/api';
+import { Alert, Box, Card, CardActionArea, CardContent, CircularProgress, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
+const imageUrl = mediaUrl;
+const priceFor = (product) => product.salePrice || product.discountPrice || product.price;
 export default function Home() {
-  return (
-    <Box>
-      <Box sx={{ bgcolor: '#eceff1', p: 6, borderRadius: 2, mb: 4, textAlign: 'center' }}>
-        <Typography variant="h3" gutterBottom>Discover premium Indian goods</Typography>
-        <Typography variant="h6" gutterBottom>Quality, trust and modern design from AsianCalf</Typography>
-        <Button variant="contained" component={Link} to="/products">Shop Now</Button>
-      </Box>
-      <Typography variant="h5" gutterBottom>Featured products</Typography>
-      <Typography color="text.secondary">Browse our curated selection on the Shop page.</Typography>
-    </Box>
-  );
+  const [products, setProducts] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
+  useEffect(() => { const loadAllProducts = async () => { const firstResponse = await fetch(apiUrl('/api/products?limit=100')); const firstBody = await firstResponse.json(); if (!firstResponse.ok || !firstBody.success) throw new Error(firstBody.message || 'Products could not be loaded.'); const { products: firstProducts = [], pages = 1 } = firstBody.data; const remaining = await Promise.all(Array.from({ length: Math.max(0, pages - 1) }, (_, index) => fetch(apiUrl(`/api/products?limit=100&page=${index + 2}`)).then((response) => response.json()))); setProducts([...firstProducts, ...remaining.flatMap((body) => body.success ? body.data.products || [] : [])]); }; loadAllProducts().catch((err) => setError(err.message)).finally(() => setLoading(false)); }, []);
+  const productCards = products.map((product) => ({ product, image: product.primaryImage || product.images?.[0] })).filter(({ image }) => Boolean(image));
+  return <div className="page-container"><section className="catalog-section"><Box className="catalog-heading"><Box><Typography component="h1">Discover our collection</Typography><Typography>Thoughtfully selected pieces for everyday spaces.</Typography></Box><Typography className="catalog-count">{loading ? 'Loading collection…' : `${productCards.length} item${productCards.length !== 1 ? 's' : ''}`}</Typography></Box>{loading && <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>}{error && <Alert severity="error">{error} Check the backend API configuration.</Alert>}{!loading && !error && productCards.length === 0 && <Alert severity="info">No products are available right now.</Alert>}<div className="photo-grid">{productCards.map(({ product, image }) => <Card key={product._id} className="photo-card"><CardActionArea component={RouterLink} to={`/products/${product._id}`}><Box className="product-image-frame"><img className="uploaded-product-image" src={imageUrl(image)} alt={product.name} /></Box><CardContent className="product-card-content"><Typography className="product-card-category">{product.productCategory || product.department || 'Featured item'}</Typography><Typography className="product-card-name">{product.name}</Typography><Box className="product-card-bottom"><Typography className="product-card-price">₹{Number(priceFor(product) || 0).toLocaleString('en-IN')}</Typography><Typography className="product-card-view">View details →</Typography></Box></CardContent></CardActionArea></Card>)}</div></section></div>;
 }

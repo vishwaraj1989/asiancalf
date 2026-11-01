@@ -7,14 +7,26 @@ exports.protect = async (req, res, next) => {
     token = req.headers.authorization.split(' ')[1];
   }
   if (!token) return res.status(401).json({ success: false, message: 'Not authorized, token missing' });
+
+  let decoded;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = { id: decoded.id, role: decoded.role };
-    // optionally attach full user
-    req.userFull = await User.findById(decoded.id).select('-password');
-    next();
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
     return res.status(401).json({ success: false, message: 'Not authorized, token invalid' });
+  }
+
+  try {
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) return res.status(401).json({ success: false, message: 'Not authorized, account not found' });
+    if (user.isActive === false) return res.status(403).json({ success: false, message: 'Account is disabled' });
+
+    // Role and active status come from MongoDB so demotions and suspensions
+    // take effect immediately, even while a previously issued JWT is valid.
+    req.user = { id: user._id.toString(), role: user.role };
+    req.userFull = user;
+    return next();
+  } catch (err) {
+    return next(err);
   }
 };
 
