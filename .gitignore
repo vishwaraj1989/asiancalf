@@ -1,10 +1,13 @@
-node_modules/
-client/node_modules/
-server/node_modules/
-.env
-.env.local
-dist/
-build/
-uploads/
-/.vscode/
-.DS_Store
+# Environment files may contain credentials and secrets.
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.production.example
+
+# Local MongoDB backups can contain private application data.
+server/backups/
+
+# Installed dependencies and generated frontend output.
+**/node_modules/
+/client/build/
+/server/.cache/

@@ -1,11 +1,2 @@
-import React from 'react';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-
-export default function Footer() {
-  return (
-    <Box component="footer" sx={{ py: 4, mt: 6, bgcolor: '#f5f5f5' }}>
-      <Typography align="center">© {new Date().getFullYear()} AsianCalf — Premium Indian goods</Typography>
-    </Box>
-  );
-}
+import { Box, Typography } from '@mui/material';
+export default function Footer() { return <Box component="footer" className="site-footer"><Typography className="footer-brand">Asian<span>Calf</span></Typography><Typography variant="body2">Curated finds, simple shopping.</Typography><Typography variant="caption">© {new Date().getFullYear()} AsianCalf</Typography></Box>; }

@@ -4,7 +4,7 @@ info:
   version: '0.1.0'
   description: OpenAPI spec for core AsianCalf backend (generated from routes)
 servers:
-  - url: http://localhost:5000
+  - url: https://asiancalf.onrender.com
 paths:
   /api/auth/register:
     post:
@@ -34,6 +34,51 @@ paths:
       responses:
         '200':
           description: OK
+
+  /api/auth/admin-setup:
+    post:
+      summary: One-time setup for the admin email configured on the backend
+      description: Requires a temporary backend-only setup secret. Sends only a password; the target email is read from ADMIN_EMAIL. Remove ADMIN_SETUP_SECRET from the hosting environment after success.
+      parameters:
+        - name: x-admin-setup-secret
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  description: Must be between 16 and 72 UTF-8 bytes.
+      responses:
+        '200':
+          description: Admin account setup completed. The response does not contain credentials.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, message]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Admin account setup completed. Remove ADMIN_SETUP_SECRET from the Render environment now.
+        '400':
+          description: Password does not meet the length requirements.
+        '403':
+          description: Setup secret is invalid.
+        '404':
+          description: Setup is disabled because backend setup variables are missing or invalid.
+        '409':
+          description: Setup was already completed for this admin account.
 
   /api/products:
     get:

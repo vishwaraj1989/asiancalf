@@ -1,29 +1,18 @@
-import React, { createContext, useState, useEffect } from 'react';
-import api, { setAuthToken } from '../services/api';
+import { createContext, useContext, useMemo, useState } from 'react';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+export function AuthProvider({ children }) {
+  const [session, setSession] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('asianCalfSession')) || null; } catch { return null; }
+  });
+  const value = useMemo(() => ({
+    user: session?.user || null,
+    token: session?.token || null,
+    signIn(data) { localStorage.setItem('asianCalfSession', JSON.stringify(data)); setSession(data); },
+    signOut() { localStorage.removeItem('asianCalfSession'); setSession(null); },
+  }), [session]);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
 
-  useEffect(() => {
-    if (token) {
-      setAuthToken(token);
-      localStorage.setItem('token', token);
-      // fetch profile
-      api.get('/auth/me').then((res) => setUser(res.data.data)).catch(() => { setUser(null); });
-    } else {
-      setAuthToken(null);
-      localStorage.removeItem('token');
-      setUser(null);
-    }
-  }, [token]);
-
-  const login = (token) => setToken(token);
-  const logout = () => setToken(null);
-
-  return <AuthContext.Provider value={{ user, token, login, logout }}>{children}</AuthContext.Provider>;
-};
-
-export default AuthContext;
+export const useAuth = () => useContext(AuthContext);
