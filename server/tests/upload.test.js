@@ -16,7 +16,7 @@ app.get('/internal-error', (req, res, next) => next(new Error('private database 
 app.use(errorHandler);
 
 describe('product upload middleware', () => {
-  test('accepts supported JPEG images up to the existing 2 MB limit', async () => {
+  test('accepts supported JPEG images up to the existing 5 MB limit', async () => {
     const response = await request(app)
       .post('/images')
       .attach('images', Buffer.alloc(IMAGE_MAX_BYTES, 1), { filename: 'front.jpg', contentType: 'image/jpeg' });
@@ -31,7 +31,7 @@ describe('product upload middleware', () => {
       .attach('images', Buffer.alloc(IMAGE_MAX_BYTES + 1, 1), { filename: 'large.jpg', contentType: 'image/jpeg' });
 
     expect(response.status).toBe(413);
-    expect(response.body.message).toMatch(/size limit/i);
+    expect(response.body.message).toMatch(/5 MB or smaller/i);
   });
 
   test('rejects unsupported image extensions and mismatched MIME types', async () => {

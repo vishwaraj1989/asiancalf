@@ -23,6 +23,7 @@ const returnRoutes = require('./routes/returns');
 const inquiryRoutes = require('./routes/inquiries');
 const sellerRoutes = require('./routes/seller');
 const productMediaRoutes = require('./routes/productMedia');
+const productMediaHeaders = require('./middleware/productMediaHeaders');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -45,6 +46,7 @@ app.use(cors({
   },
 }));
 app.use(express.json({ limit: '10mb' }));
+app.use('/uploads', productMediaHeaders);
 app.use('/uploads/products', productMediaRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
