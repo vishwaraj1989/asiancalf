@@ -8,6 +8,8 @@
     "dev": "nodemon server.js",
     "seed": "node seed/seed.js",
     "admin:ensure": "node scripts/ensureAdmin.js",
+    "media:migrate:check": "node scripts/migrateUploadsToGridFS.js",
+    "media:migrate:apply": "node scripts/migrateUploadsToGridFS.js --apply",
     "test": "jest --runInBand"
   },
   "dependencies": {

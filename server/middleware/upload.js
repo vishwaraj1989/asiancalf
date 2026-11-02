@@ -5,7 +5,7 @@ const fs = require('fs');
 const uploadDir = path.join(__dirname, '..', 'uploads', 'products');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const VIDEO_MAX_BYTES = 25 * 1024 * 1024;
 const MAX_IMAGES_PER_REQUEST = 5;
 const imageTypes = new Map([

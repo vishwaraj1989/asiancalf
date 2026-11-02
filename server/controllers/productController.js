@@ -1,5 +1,31 @@
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const mediaStore = require('../services/productMediaStorage');
+
+const uploadsDir = path.resolve(__dirname, '..', 'uploads', 'products');
+const localPathFor = (url) => path.join(uploadsDir, path.basename(url));
+const isProductMedia = (url) => typeof url === 'string' && url.startsWith('/uploads/products/');
+
+async function unlinkIfPresent(filePath) {
+  try { await fs.unlink(filePath); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+}
+
+async function cleanupUnreferencedMedia(url) {
+  if (!isProductMedia(url)) return;
+  // Only remove the stored object once no product document still references it.
+  const reference = await Product.exists({ $or: [{ images: url }, { primaryImage: url }, { video: url }] });
+  if (reference) return;
+  const filename = path.basename(url);
+  const gridFile = await mediaStore.findLatest(filename);
+  if (gridFile) await mediaStore.deleteFile(gridFile._id);
+  await unlinkIfPresent(localPathFor(url));
+}
+
+async function removeStagedFiles(files) {
+  await Promise.all((files || []).map((file) => unlinkIfPresent(file.path).catch(() => {})));
+}
 
 exports.listProducts = async (req, res, next) => {
   try {
@@ -125,16 +151,9 @@ exports.deleteProduct = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
-    // Remove locally-uploaded product files along with the product record.
-    const fs = require('fs');
-    const path = require('path');
-    const uploadsDir = path.resolve(__dirname, '..', 'uploads', 'products');
-    [...product.images, product.video].forEach((media) => {
-      if (!media?.startsWith('/uploads/products/')) return;
-      const filePath = path.join(uploadsDir, path.basename(media));
-      fs.unlink(filePath, () => {});
-    });
+    const mediaUrls = [...product.images, product.primaryImage, product.video].filter(isProductMedia);
     await product.deleteOne();
+    await Promise.allSettled(mediaUrls.map(cleanupUnreferencedMedia));
     res.json({ success: true, message: 'Product deleted' });
   } catch (err) {
     next(err);
@@ -145,12 +164,21 @@ exports.uploadImages = async (req, res, next) => {
   try {
     if (!req.files || !req.files.length) return res.status(400).json({ success: false, message: 'No files uploaded' });
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    if (!product) {
+      await removeStagedFiles(req.files);
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
     const existingCount = product.images.length;
     if (existingCount + req.files.length > 5) {
-      const fs = require('fs');
-      req.files.forEach((file) => fs.unlink(file.path, () => {}));
+      await removeStagedFiles(req.files);
       return res.status(400).json({ success: false, message: `A product can have a maximum of 5 images. It already has ${existingCount}.` });
+    }
+    const storedIds = [];
+    try {
+      for (const file of req.files) storedIds.push(await mediaStore.uploadFile(file));
+    } catch (error) {
+      await Promise.allSettled(storedIds.map((id) => mediaStore.deleteFile(id)));
+      throw error;
     }
     const urls = req.files.map((f) => `/uploads/products/${f.filename}`);
     product.images = product.images.concat(urls);
@@ -160,7 +188,13 @@ exports.uploadImages = async (req, res, next) => {
     } else if (!product.primaryImage) {
       product.primaryImage = product.images[0];
     }
-    await product.save();
+    try {
+      await product.save();
+    } catch (error) {
+      await Promise.allSettled(storedIds.map((id) => mediaStore.deleteFile(id)));
+      throw error;
+    }
+    await removeStagedFiles(req.files);
     res.json({ success: true, data: product });
   } catch (err) {
     next(err);
@@ -172,15 +206,21 @@ exports.uploadVideo = async (req, res, next) => {
     if (!req.file) return res.status(400).json({ success: false, message: 'No video uploaded' });
     const product = await Product.findById(req.params.id);
     if (!product) {
-      require('fs').unlink(req.file.path, () => {});
+      await removeStagedFiles([req.file]);
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
-    if (product.video?.startsWith('/uploads/products/')) {
-      const oldPath = require('path').join(__dirname, '..', 'uploads', 'products', require('path').basename(product.video));
-      require('fs').unlink(oldPath, () => {});
+    const oldVideo = product.video;
+    let storedId;
+    try {
+      storedId = await mediaStore.uploadFile(req.file);
+      product.video = `/uploads/products/${req.file.filename}`;
+      await product.save();
+    } catch (error) {
+      if (storedId) await mediaStore.deleteFile(storedId).catch(() => {});
+      throw error;
     }
-    product.video = `/uploads/products/${req.file.filename}`;
-    await product.save();
+    await removeStagedFiles([req.file]);
+    if (oldVideo && oldVideo !== product.video) await cleanupUnreferencedMedia(oldVideo).catch((error) => console.warn('Old product video cleanup failed:', error.message));
     res.json({ success: true, data: product });
   } catch (err) {
     next(err);

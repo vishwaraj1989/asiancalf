@@ -22,6 +22,8 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ['customer', 'seller', 'admin'], default: 'customer' },
     addresses: [addressSchema],
     isActive: { type: Boolean, default: true },
+    // Internal one-time bootstrap flag; never serialize it in API responses.
+    adminSetupCompleted: { type: Boolean, default: false, select: false },
   },
   { timestamps: true }
 );
