@@ -27,6 +27,7 @@ const productSchema = new mongoose.Schema(
     specifications: { type: mongoose.Schema.Types.Mixed },
     featured: { type: Boolean, default: false },
     bestseller: { type: Boolean, default: false },
+    homePageOrder: { type: Number, min: 0, default: 0, index: true },
     active: { type: Boolean, default: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     rating: { type: Number, min: 0, max: 5, default: 0 },

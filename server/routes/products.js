@@ -22,6 +22,7 @@ router.post('/', protect, authorize('admin'), [
 	body('category').optional().isMongoId(),
 	body('salePrice').optional().isNumeric(),
 	body('stock').optional().isInt({ min: 0 }),
+	body('homePageOrder').optional().isInt({ min: 0 }),
 ], validate, productController.createProduct);
 
 router.put('/:id', protect, authorize('admin'), [
@@ -32,6 +33,7 @@ router.put('/:id', protect, authorize('admin'), [
 	body('category').optional().isMongoId(),
 	body('salePrice').optional().isNumeric(),
 	body('stock').optional().isInt({ min: 0 }),
+	body('homePageOrder').optional().isInt({ min: 0 }),
 ], validate, productController.updateProduct);
 router.delete('/:id', protect, authorize('admin'), [param('id').isMongoId()], validate, productController.deleteProduct);
 

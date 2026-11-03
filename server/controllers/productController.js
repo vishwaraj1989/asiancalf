@@ -94,6 +94,7 @@ exports.createProduct = async (req, res, next) => {
       marketplaceUrls: Array.isArray(req.body.marketplaceUrls) ? req.body.marketplaceUrls.filter(Boolean) : [],
       featured: req.body.featured,
       bestseller: req.body.bestseller,
+      homePageOrder: req.body.homePageOrder !== undefined ? Number(req.body.homePageOrder) : undefined,
       active: req.body.active,
       createdBy: req.user.id,
     };
@@ -120,10 +121,10 @@ exports.createProduct = async (req, res, next) => {
 exports.updateProduct = async (req, res, next) => {
   try {
     const updates = {};
-    const fields = ['name', 'sku', 'price', 'salePrice', 'stock', 'category', 'department', 'productCategory', 'subcategory', 'description', 'primaryImage', 'weight', 'brand', 'marketplaceUrl', 'marketplaceUrls', 'featured', 'bestseller', 'active'];
+    const fields = ['name', 'sku', 'price', 'salePrice', 'stock', 'homePageOrder', 'category', 'department', 'productCategory', 'subcategory', 'description', 'primaryImage', 'weight', 'brand', 'marketplaceUrl', 'marketplaceUrls', 'featured', 'bestseller', 'active'];
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        updates[field] = field === 'price' || field === 'salePrice' || field === 'stock' || field === 'weight'
+        updates[field] = field === 'price' || field === 'salePrice' || field === 'stock' || field === 'homePageOrder' || field === 'weight'
           ? Number(req.body[field])
           : req.body[field];
       }
