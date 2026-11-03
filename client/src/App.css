@@ -95,3 +95,5 @@ a { color:inherit; }
 }
 
 .checkout-button.MuiButton-root { min-height:42px; padding:8px 16px; border:1px solid #1c5b50; border-radius:8px; color:#fff; background:#1c5b50; box-shadow:none; font-weight:700; text-transform:none; } .checkout-button.MuiButton-root:hover { border-color:#12453c; color:#fff; background:#12453c; box-shadow:0 2px 7px rgba(28,91,80,.22); } .checkout-button.MuiButton-root.Mui-disabled { color:#fff; background:#8da99f; } .marketplace-actions .checkout-button.MuiButton-root { min-height:42px; }
+
+.home-department-section + .home-department-section { margin-top: 38px; padding-top: 28px; border-top: 1px solid #dce7e2; } .home-department-title { margin: 0 0 18px !important; color: #173f38; font-family: Georgia,serif !important; font-size: 1.65rem !important; font-weight: 700 !important; }

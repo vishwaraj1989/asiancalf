@@ -27,6 +27,81 @@ const catalog = {
   'Collectibles & Handmade': { Collectibles: ['Coins & Stamps', 'Memorabilia', 'Trading Cards'], Handmade: ['Home & Living', 'Jewelry', 'Art & Decor', 'Personalized Gifts'] },
   'Movies, Music & Entertainment': { 'Movies & TV': ['DVDs & Blu-ray', 'Digital Media'], Music: ['Vinyl', 'CDs', 'Music Accessories'], Gaming: ['Consoles', 'Games', 'Gaming Accessories'] },
 };
+Object.assign(catalog, {
+  Appliances: {
+    'Kitchen Appliances': ['Mixer Grinders', 'Air Fryers', 'Microwave Ovens', 'Refrigerators', 'Dishwashers'],
+    'Laundry Appliances': ['Washing Machines', 'Dryers', 'Irons'],
+    'Heating & Cooling': ['Air Conditioners', 'Fans', 'Heaters', 'Air Purifiers'],
+    'Large Appliances': ['Water Purifiers', 'Water Heaters', 'Vacuum Cleaners'],
+  },
+  'Health & Household': {
+    'Medical Supplies': ['First Aid', 'Mobility Aids', 'Health Monitors'],
+    'Health Care': ['Vitamins & Supplements', 'Pain Relief', 'Personal Care'],
+    'Household Supplies': ['Cleaning Products', 'Laundry Supplies', 'Paper Products'],
+    'Baby & Family Care': ['Diapers', 'Wipes', 'Adult Care'],
+  },
+  'Cell Phones & Accessories': {
+    'Cell Phones': ['Smartphones', 'Basic Phones', 'Refurbished Phones'],
+    'Phone Accessories': ['Cases & Covers', 'Screen Protectors', 'Chargers & Cables'],
+    'Wearable Technology': ['Smart Watches', 'Fitness Trackers', 'Bands'],
+    'Mobile Audio': ['Wireless Earbuds', 'Headsets', 'Bluetooth Speakers'],
+  },
+  'Patio, Lawn & Garden': {
+    Gardening: ['Seeds & Plants', 'Planters', 'Garden Tools', 'Watering Equipment'],
+    'Outdoor Living': ['Patio Furniture', 'Outdoor Lighting', 'Shade & Shelters'],
+    'Grills & Outdoor Cooking': ['Grills', 'Outdoor Cookware', 'BBQ Tools'],
+    'Lawn Care': ['Lawn Mowers', 'Fertilizers', 'Pest Control'],
+  },
+  'Video Games': {
+    'Game Consoles': ['PlayStation', 'Xbox', 'Nintendo'],
+    'Video Games': ['Action Games', 'Adventure Games', 'Sports Games', 'Family Games'],
+    'Gaming Accessories': ['Controllers', 'Headsets', 'Gaming Keyboards', 'Storage'],
+    'PC Gaming': ['PC Games', 'Gaming PCs', 'Gaming Chairs'],
+  },
+  Software: {
+    'Business & Office': ['Office Suites', 'Accounting', 'Project Management'],
+    'Security & Antivirus': ['Antivirus', 'Internet Security', 'Privacy Tools'],
+    'Education & Reference': ['Learning Software', 'Language Learning', 'Reference'],
+    'Operating Systems': ['Desktop Operating Systems', 'Utilities', 'Backup Software'],
+  },
+  'Gift Cards': {
+    'Digital Gift Cards': ['Shopping', 'Food & Dining', 'Entertainment', 'Travel'],
+    'Physical Gift Cards': ['Shopping', 'Food & Dining', 'Entertainment'],
+  },
+  'Religious & Spiritual': {
+    'Puja Essentials': ['Puja Kits', 'Incense & Dhoop', 'Diyas & Lamps'],
+    'Idols & Statues': ['Hindu Idols', 'Buddha Statues', 'Decorative Figures'],
+    'Prayer & Meditation': ['Prayer Beads', 'Meditation Accessories', 'Prayer Mats'],
+    'Religious Books & Decor': ['Scriptures', 'Wall Decor', 'Ritual Accessories'],
+  },
+  'Food Service & Hospitality': {
+    'Commercial Kitchen': ['Cookware', 'Food Preparation', 'Refrigeration'],
+    'Restaurant Supplies': ['Tableware', 'Serving Supplies', 'Takeout Packaging'],
+    'Hotel Supplies': ['Bedding', 'Bath Supplies', 'Guest Amenities'],
+  },
+  'Baby & Parenting': {
+    'Baby Safety': ['Safety Gates', 'Baby Monitors', 'Outlet Covers'],
+    'Baby Furniture': ['Cribs', 'High Chairs', 'Changing Tables'],
+    'Feeding & Nursing': ['Bottles', 'Breast Pumps', 'Feeding Accessories'],
+    'Maternity & Pregnancy': ['Maternity Wear', 'Pregnancy Support', 'Nursing Accessories'],
+  },
+  'Fashion Accessories': {
+    'Bags & Wallets': ['Handbags', 'Backpacks', 'Wallets'],
+    'Watches': ['Analog Watches', 'Digital Watches', 'Smart Watches'],
+    'Eyewear': ['Sunglasses', 'Prescription Frames', 'Accessories'],
+    'Belts & Accessories': ['Belts', 'Scarves', 'Hats & Caps'],
+  },
+  'Video, Music & Media': {
+    'Movies & TV': ['Blu-ray', 'DVDs', 'Streaming Media'],
+    'Music': ['CDs', 'Vinyl Records', 'Music Downloads'],
+    'Books & Audio': ['Audiobooks', 'E-books', 'Educational Media'],
+  },
+  'Travel & Experiences': {
+    'Travel Services': ['Flights', 'Hotels', 'Car Rentals'],
+    'Tours & Activities': ['Local Experiences', 'Attractions', 'Guided Tours'],
+    'Travel Essentials': ['Luggage', 'Travel Organizers', 'Comfort Accessories'],
+  },
+});
 const initialForm = { name: '', sku: '', price: '', salePrice: '', stock: '', homePageOrder: 0, brand: '', marketplaceUrls: [''], description: '', department: '', productCategory: '', subcategory: '' };
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 

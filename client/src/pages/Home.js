@@ -2,15 +2,78 @@ import { apiUrl, mediaUrl } from '../utils/api';
 import { Alert, Box, Card, CardActionArea, CardContent, CircularProgress, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
+
 const imageUrl = mediaUrl;
 const priceFor = (product) => product.salePrice || product.discountPrice || product.price;
+
 export default function Home() {
-  const [products, setProducts] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
-  useEffect(() => { const loadAllProducts = async () => { const firstResponse = await fetch(apiUrl('/api/products?limit=100')); const firstBody = await firstResponse.json(); if (!firstResponse.ok || !firstBody.success) throw new Error(firstBody.message || 'Products could not be loaded.'); const { products: firstProducts = [], pages = 1 } = firstBody.data; const remaining = await Promise.all(Array.from({ length: Math.max(0, pages - 1) }, (_, index) => fetch(apiUrl(`/api/products?limit=100&page=${index + 2}`)).then((response) => response.json()))); setProducts([...firstProducts, ...remaining.flatMap((body) => body.success ? body.data.products || [] : [])]); }; loadAllProducts().catch((err) => setError(err.message)).finally(() => setLoading(false)); }, []);
-  const productCards = products.map((product, index) => ({ product, index, image: product.primaryImage || product.images?.[0] })).filter(({ image }) => Boolean(image)).sort((a, b) => {
-    const aOrder = Number(a.product.homePageOrder) || Number.MAX_SAFE_INTEGER;
-    const bOrder = Number(b.product.homePageOrder) || Number.MAX_SAFE_INTEGER;
-    return aOrder - bOrder || a.index - b.index;
-  });
-  return <div className="page-container"><section className="catalog-section"><Box className="catalog-heading"><Box><Typography component="h1">Discover our collection</Typography><Typography>Thoughtfully selected pieces for everyday spaces.</Typography></Box><Typography className="catalog-count">{loading ? 'Loading collection…' : `${productCards.length} item${productCards.length !== 1 ? 's' : ''}`}</Typography></Box>{loading && <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>}{error && <Alert severity="error">{error} Check the backend API configuration.</Alert>}{!loading && !error && productCards.length === 0 && <Alert severity="info">No products are available right now.</Alert>}<div className="photo-grid">{productCards.map(({ product, image }) => <Card key={product._id} className="photo-card"><CardActionArea component={RouterLink} to={`/products/${product._id}`}><Box className="product-image-frame"><img className="uploaded-product-image" src={imageUrl(image)} alt={product.name} /></Box><CardContent className="product-card-content"><Typography className="product-card-category">{product.productCategory || product.department || 'Featured item'}</Typography><Typography className="product-card-name">{product.name}</Typography><Box className="product-card-bottom"><Typography className="product-card-price">₹{Number(priceFor(product) || 0).toLocaleString('en-IN')}</Typography><Typography className="product-card-view">View details →</Typography></Box></CardContent></CardActionArea></Card>)}</div></section></div>;
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const loadAllProducts = async () => {
+      const firstResponse = await fetch(apiUrl('/api/products?limit=100'));
+      const firstBody = await firstResponse.json();
+      if (!firstResponse.ok || !firstBody.success) throw new Error(firstBody.message || 'Products could not be loaded.');
+      const { products: firstProducts = [], pages = 1 } = firstBody.data;
+      const remaining = await Promise.all(Array.from(
+        { length: Math.max(0, pages - 1) },
+        (_, index) => fetch(apiUrl(`/api/products?limit=100&page=${index + 2}`)).then((response) => response.json())
+      ));
+      setProducts([...firstProducts, ...remaining.flatMap((body) => body.success ? body.data.products || [] : [])]);
+    };
+    loadAllProducts().catch((err) => setError(err.message)).finally(() => setLoading(false));
+  }, []);
+
+  const productCards = products
+    .map((product, index) => ({ product, index, image: product.primaryImage || product.images?.[0] }))
+    .filter(({ image }) => Boolean(image))
+    .sort((a, b) => {
+      const aOrder = Number(a.product.homePageOrder) || Number.MAX_SAFE_INTEGER;
+      const bOrder = Number(b.product.homePageOrder) || Number.MAX_SAFE_INTEGER;
+      return aOrder - bOrder || a.index - b.index;
+    });
+  const departments = [...new Set(productCards.map(({ product }) => product.department || 'Other products'))];
+
+  const renderProduct = ({ product, image }) => (
+    <Card key={product._id} className="photo-card">
+      <CardActionArea component={RouterLink} to={`/products/${product._id}`}>
+        <Box className="product-image-frame"><img className="uploaded-product-image" src={imageUrl(image)} alt={product.name} /></Box>
+        <CardContent className="product-card-content">
+          <Typography className="product-card-category">{product.productCategory || product.department || 'Featured item'}</Typography>
+          <Typography className="product-card-name">{product.name}</Typography>
+          <Box className="product-card-bottom">
+            <Typography className="product-card-price">₹{Number(priceFor(product) || 0).toLocaleString('en-IN')}</Typography>
+            <Typography className="product-card-view">View details →</Typography>
+          </Box>
+        </CardContent>
+      </CardActionArea>
+    </Card>
+  );
+
+  return (
+    <div className="page-container">
+      <section className="catalog-section">
+        <Box className="catalog-heading">
+          <Box>
+            <Typography component="h1">Discover our collection</Typography>
+            <Typography>Thoughtfully selected pieces for everyday spaces.</Typography>
+          </Box>
+          <Typography className="catalog-count">{loading ? 'Loading collection…' : `${productCards.length} item${productCards.length !== 1 ? 's' : ''}`}</Typography>
+        </Box>
+        {loading && <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>}
+        {error && <Alert severity="error">{error} Check the backend API configuration.</Alert>}
+        {!loading && !error && productCards.length === 0 && <Alert severity="info">No products are available right now.</Alert>}
+        {!loading && !error && departments.map((department) => (
+          <Box component="section" className="home-department-section" key={department}>
+            <Typography component="h2" className="home-department-title">{department}</Typography>
+            <div className="photo-grid">
+              {productCards.filter(({ product }) => (product.department || 'Other products') === department).map(renderProduct)}
+            </div>
+          </Box>
+        ))}
+      </section>
+    </div>
+  );
 }
