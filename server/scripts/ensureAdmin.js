@@ -14,7 +14,16 @@ async function ensureAdmin() {
   const hashedPassword = await bcrypt.hash(password, 10);
   await User.findOneAndUpdate(
     { email: email.toLowerCase() },
-    { $set: { name: 'Admin', email: email.toLowerCase(), password: hashedPassword, role: 'admin', isActive: true } },
+    {
+      $set: {
+        name: 'Admin',
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        role: 'admin',
+        isActive: true,
+        adminSetupCompleted: true,
+      },
+    },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
   console.log(`Admin account is ready for ${email}`);
