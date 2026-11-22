@@ -1,6 +1,7 @@
 import { apiUrl } from '../utils/api';
-import { Alert, Box, CircularProgress, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import ProductGridCard from '../components/ProductGridCard';
 
 export default function Home() {
@@ -31,6 +32,11 @@ export default function Home() {
       const bOrder = Number(b.product.homePageOrder) || Number.MAX_SAFE_INTEGER;
       return aOrder - bOrder || a.index - b.index;
     });
+  const availableDepartments = [...new Set(
+    productCards
+      .map(({ product }) => product.department)
+      .filter((department) => typeof department === 'string' && department.trim())
+  )].sort((left, right) => left.localeCompare(right));
   return (
     <div className="page-container">
       <section className="catalog-section">
@@ -43,6 +49,23 @@ export default function Home() {
         </Box>
         {loading && <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>}
         {error && <Alert severity="error">{error} Check the backend API configuration.</Alert>}
+        {!loading && !error && availableDepartments.length > 0 && (
+          <Box component="section" sx={{ mb: 4 }} aria-label="Browse available departments">
+            <Typography variant="h5" component="h2" sx={{ mb: 2 }}>Browse departments</Typography>
+            <Box className="category-grid">
+              {availableDepartments.map((department) => (
+                <Button
+                  key={department}
+                  component={RouterLink}
+                  to={`/products?department=${encodeURIComponent(department)}`}
+                  className="category-tile"
+                >
+                  {department}
+                </Button>
+              ))}
+            </Box>
+          </Box>
+        )}
         {!loading && !error && productCards.length === 0 && <Alert severity="info">No products are available right now.</Alert>}
         {!loading && !error && productCards.length > 0 && (
           <Box component="section" aria-label="Featured products">
