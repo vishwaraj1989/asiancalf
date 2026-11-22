@@ -18,6 +18,8 @@ let orderId;
 let imageUrl;
 const adminEmail = 'workflow-admin@test.local';
 const customerEmail = 'workflow-customer@test.local';
+const adminPassword = randomBytes(32).toString('base64url');
+const customerPassword = randomBytes(32).toString('base64url');
 
 beforeAll(async () => {
   process.env.JWT_SECRET = randomBytes(32).toString('hex');
@@ -27,10 +29,10 @@ beforeAll(async () => {
   await User.create({
     name: 'Workflow Admin',
     email: adminEmail,
-    password: await bcrypt.hash('Admin123!', 10),
+    password: await bcrypt.hash(adminPassword, 10),
     role: 'admin',
   });
-  const login = await request(server).post('/api/auth/login').send({ email: adminEmail, password: 'Admin123!' });
+  const login = await request(server).post('/api/auth/login').send({ email: adminEmail, password: adminPassword });
   adminToken = login.body.data.token;
 }, 60000);
 
@@ -47,7 +49,7 @@ describe('customer and admin workflows against an isolated MongoDB database', ()
     expect(deniedDashboard.status).toBe(401);
 
     const registration = await request(server).post('/api/auth/register').send({
-      name: 'Workflow Customer', email: customerEmail, password: 'Customer123!',
+      name: 'Workflow Customer', email: customerEmail, password: customerPassword,
     });
     expect(registration.status).toBe(201);
     customerToken = registration.body.data.token;
@@ -94,7 +96,7 @@ describe('customer and admin workflows against an isolated MongoDB database', ()
   });
 
   test('registration/login/logout, product browsing/details, cart changes, address, COD order, and order history', async () => {
-    const login = await request(server).post('/api/auth/login').send({ email: customerEmail, password: 'Customer123!' });
+    const login = await request(server).post('/api/auth/login').send({ email: customerEmail, password: customerPassword });
     expect(login.status).toBe(200);
     customerToken = login.body.data.token;
 
