@@ -8,17 +8,34 @@ describe('AsianCalf store category catalog', () => {
   afterEach(() => jest.clearAllMocks());
 
   test('provides unique, fully classified leaf categories for the store', () => {
-    expect(storeCategoryCatalog.length).toBeGreaterThan(30);
+    expect(storeCategoryCatalog.length).toBeGreaterThan(100);
     expect(new Set(storeCategoryCatalog.map((category) => category.slug)).size).toBe(storeCategoryCatalog.length);
     expect(storeCategoryCatalog.every((category) =>
       category.name && category.slug && category.department && category.parentCategory
     )).toBe(true);
   });
 
-  test('includes the home decor and pooja categories used by the existing catalog', () => {
+  test('includes all 13 main departments and the requested MDF category examples', () => {
+    const departments = new Set(storeCategoryCatalog.map((category) => category.department));
+    expect(departments).toEqual(new Set([
+      'Home & Living',
+      'Kitchen & Dining',
+      'Furniture',
+      'Home Organization',
+      'Pooja & Religious Items',
+      'Car Accessories',
+      'Garden & Outdoor',
+      'Lighting & Lamps',
+      'Fashion & Accessories',
+      'Beauty & Personal Care',
+      'Electronics',
+      'Toys & Games',
+      'Gifts & Occasions',
+    ]));
     expect(storeCategoryCatalog).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: 'Key Holders & Hooks', department: 'Home & Living', parentCategory: 'Home Decor' }),
-      expect.objectContaining({ name: 'Idols & Statues', department: 'Home & Living', parentCategory: 'Pooja & Spiritual' }),
+      expect.objectContaining({ name: 'MDF Key Holders', department: 'Home & Living', parentCategory: 'Home Decor' }),
+      expect.objectContaining({ name: 'MDF Rangoli', department: 'Home & Living', parentCategory: 'Home Decor' }),
+      expect.objectContaining({ name: 'MDF Religious Cutouts', department: 'Pooja & Religious Items', parentCategory: 'Religious Cutouts' }),
     ]));
   });
 
