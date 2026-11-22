@@ -1,8 +1,9 @@
 import { apiUrl } from '../utils/api';
-import { Alert, Box, Button, CircularProgress, MenuItem, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, TextField, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductGridCard from '../components/ProductGridCard';
+import CategoryHierarchyFields from '../components/CategoryHierarchyFields';
 import { useCategories } from '../hooks/useCategories';
 import { productMatchesCategory } from '../utils/categoryProducts';
 
@@ -13,11 +14,10 @@ export default function Products() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [department, setDepartment] = useState(searchParams.get('department') || '');
+  const [productCategory, setProductCategory] = useState(searchParams.get('productCategory') || '');
   const [category, setCategory] = useState(searchParams.get('category') || '');
   const [subcategory, setSubcategory] = useState(searchParams.get('subcategory') || '');
   const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
-  const departments = [...new Set(products.map((product) => product.department).filter(Boolean))].sort();
-  const subcategories = [...new Set(products.filter((product) => !department || product.department === department).map((product) => product.subcategory).filter(Boolean))].sort();
 
   useEffect(() => {
     let cancelled = false;
@@ -41,29 +41,41 @@ export default function Products() {
 
   const filteredProducts = useMemo(() => products
     .filter((product) => !department || product.department === department)
+    .filter((product) => !productCategory || product.productCategory === productCategory)
     .filter((product) => productMatchesCategory(product, category, categories))
     .filter((product) => !subcategory || product.subcategory === subcategory)
     .map((product, index) => ({ product, index, image: product.primaryImage || product.images?.[0] }))
     .sort((a, b) => (Number(a.product.homePageOrder) || Number.MAX_SAFE_INTEGER) - (Number(b.product.homePageOrder) || Number.MAX_SAFE_INTEGER) || a.index - b.index),
-  [products, department, category, subcategory, categories]);
+  [products, department, productCategory, category, subcategory, categories]);
 
   const submit = (event) => {
     event.preventDefault();
     const next = {};
     if (search.trim()) next.search = search.trim();
     if (department) next.department = department;
+    if (productCategory) next.productCategory = productCategory;
     if (category) next.category = category;
     if (subcategory) next.subcategory = subcategory;
     setSearchParams(next);
+  };
+
+  const updateCategorySelection = (selection) => {
+    setDepartment(selection.department);
+    setProductCategory(selection.productCategory);
+    setCategory(selection.categoryId);
+    setSubcategory(selection.subcategory);
   };
 
   return <Box className="page-container"><section className="catalog-section">
     <Box className="catalog-heading"><Box><Typography component="h1">Shop products</Typography><Typography>Browse products by department and category.</Typography></Box><Typography className="catalog-count">{loading ? 'Loading…' : `${filteredProducts.length} item${filteredProducts.length !== 1 ? 's' : ''}`}</Typography></Box>
     <Box component="form" onSubmit={submit} className="product-filter-form">
       <TextField label="Search products" value={search} onChange={(event) => setSearch(event.target.value)} />
-      <TextField select label="Department" value={department} onChange={(event) => { setDepartment(event.target.value); setCategory(''); setSubcategory(''); }}><MenuItem value="">All departments</MenuItem>{departments.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}</TextField>
-      <TextField select label="Category" value={category} disabled={categoriesLoading || Boolean(categoriesError)} onChange={(event) => { setCategory(event.target.value); setSubcategory(''); }}><MenuItem value="">All categories</MenuItem>{categories.map((item) => <MenuItem key={item._id} value={item._id}>{item.name}</MenuItem>)}</TextField>
-      <TextField select label="Subcategory" value={subcategory} onChange={(event) => setSubcategory(event.target.value)}><MenuItem value="">All subcategories</MenuItem>{subcategories.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}</TextField>
+      <CategoryHierarchyFields
+        categories={categories}
+        values={{ department, productCategory, subcategory, categoryId: category }}
+        onChange={updateCategorySelection}
+        disabled={categoriesLoading || Boolean(categoriesError)}
+      />
       <Button type="submit" variant="contained">Apply filters</Button>
     </Box>
     {categoriesError && <Alert severity="error" sx={{ mb: 2 }}>{categoriesError}</Alert>}

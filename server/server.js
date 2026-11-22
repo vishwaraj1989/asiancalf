@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 const connectDB = require('./config/db');
+const { ensureStoreCategoryCatalog } = require('./services/storeCategoryCatalog');
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
@@ -107,7 +108,10 @@ if (require.main === module) {
 
   (async () => {
     try {
-      if (process.env.NODE_ENV !== 'test') await connectDB();
+      if (process.env.NODE_ENV !== 'test') {
+        await connectDB();
+        await ensureStoreCategoryCatalog();
+      }
       server = app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
     } catch (error) {
       console.error(`Backend startup failed: ${error.message}`);
