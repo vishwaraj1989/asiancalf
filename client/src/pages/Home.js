@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import ProductGridCard from '../components/ProductGridCard';
 import { useCategories } from '../hooks/useCategories';
+import { categoryDepartments } from '../utils/categoryTaxonomy';
 
 export default function Home() {
   const [products, setProducts] = useState([]);
@@ -35,6 +36,7 @@ export default function Home() {
       return aOrder - bOrder || a.index - b.index;
     });
   const departments = [...new Set(productCards.map(({ product }) => product.department || 'Other products'))];
+  const browseDepartments = categoryDepartments(categories).filter((department) => department !== 'Other products');
 
   return (
     <div className="page-container">
@@ -49,11 +51,11 @@ export default function Home() {
         {loading && <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>}
         {error && <Alert severity="error">{error} Check the backend API configuration.</Alert>}
         <Box component="section" sx={{ mb: 4 }}>
-          <Typography variant="h5" component="h2" sx={{ mb: 2 }}>Browse categories</Typography>
+          <Typography variant="h5" component="h2" sx={{ mb: 2 }}>Browse departments</Typography>
           {categoriesLoading && <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} /></Box>}
           {categoriesError && <Alert severity="error">{categoriesError}</Alert>}
           {!categoriesLoading && !categoriesError && categories.length === 0 && <Alert severity="info">No categories are available yet.</Alert>}
-          {!categoriesLoading && !categoriesError && categories.length > 0 && <Box className="category-grid">{categories.map((category) => <Button key={category._id} component={RouterLink} to={`/products?category=${encodeURIComponent(category._id)}`} className="category-tile">{category.name}</Button>)}</Box>}
+          {!categoriesLoading && !categoriesError && browseDepartments.length > 0 && <Box className="category-grid">{browseDepartments.map((department) => <Button key={department} component={RouterLink} to={`/products?department=${encodeURIComponent(department)}`} className="category-tile">{department}</Button>)}</Box>}
         </Box>
         {!loading && !error && productCards.length === 0 && <Alert severity="info">No products are available right now.</Alert>}
         {!loading && !error && departments.some((department) => department !== 'Other products') && <Box className="home-department-nav" aria-label="Browse departments">{departments.filter((department) => department !== 'Other products').map((department) => <Button key={department} component={RouterLink} to={`/products?department=${encodeURIComponent(department)}`} variant="outlined">{department}</Button>)}</Box>}
