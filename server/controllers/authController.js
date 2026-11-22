@@ -15,7 +15,7 @@ exports.register = async (req, res, next) => {
     const hashed = await bcrypt.hash(password, salt);
     const user = await User.create({ name, mobile, email, password: hashed });
     const token = generateToken(user);
-    res.status(201).json({ success: true, data: { user: { id: user._id, name: user.name, email: user.email }, token } });
+    res.status(201).json({ success: true, data: { user: { id: user._id, name: user.name, email: user.email, role: user.role }, token } });
   } catch (err) {
     next(err);
   }
@@ -28,6 +28,7 @@ exports.login = async (req, res, next) => {
     if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' });
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    if (user.isActive === false) return res.status(403).json({ success: false, message: 'Account is disabled' });
     const token = generateToken(user);
     res.json({ success: true, data: { user: { id: user._id, name: user.name, email: user.email, role: user.role }, token } });
   } catch (err) {

@@ -1,5 +1,32 @@
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const { legacyCategoryMatchRegex } = require('../services/categoryMigration');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const mediaStore = require('../services/productMediaStorage');
+
+const uploadsDir = path.resolve(__dirname, '..', 'uploads', 'products');
+const localPathFor = (url) => path.join(uploadsDir, path.basename(url));
+const isProductMedia = (url) => typeof url === 'string' && url.startsWith('/uploads/products/');
+
+async function unlinkIfPresent(filePath) {
+  try { await fs.unlink(filePath); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+}
+
+async function cleanupUnreferencedMedia(url) {
+  if (!isProductMedia(url)) return;
+  // Only remove the stored object once no product document still references it.
+  const reference = await Product.exists({ $or: [{ images: url }, { primaryImage: url }, { video: url }] });
+  if (reference) return;
+  const filename = path.basename(url);
+  const gridFile = await mediaStore.findLatest(filename);
+  if (gridFile) await mediaStore.deleteFile(gridFile._id);
+  await unlinkIfPresent(localPathFor(url));
+}
+
+async function removeStagedFiles(files) {
+  await Promise.all((files || []).map((file) => unlinkIfPresent(file.path).catch(() => {})));
+}
 
 exports.listProducts = async (req, res, next) => {
   try {
@@ -8,7 +35,22 @@ exports.listProducts = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const filter = { active: true };
-    if (req.query.category) filter.category = req.query.category;
+    const clauses = [];
+    if (req.query.category) {
+      const selectedCategory = await Category.findById(req.query.category).lean();
+      if (selectedCategory) {
+        const namePattern = legacyCategoryMatchRegex(selectedCategory.name);
+        clauses.push({ $or: [
+          { category: selectedCategory._id },
+          { productCategory: namePattern },
+          { categoryName: namePattern },
+          { department: namePattern },
+        ] });
+      } else {
+        filter.category = req.query.category;
+      }
+    }
+    if (req.query.featured) filter.featured = req.query.featured === 'true' || req.query.featured === '1';
     if (req.query.availability === 'inStock') filter.stock = { $gt: 0 };
     if (req.query.priceMin || req.query.priceMax) {
       filter.price = {};
@@ -17,11 +59,11 @@ exports.listProducts = async (req, res, next) => {
     }
     if (req.query.search) {
       const q = req.query.search;
-      filter.$or = [
+      clauses.push({ $or: [
         { name: new RegExp(q, 'i') },
         { sku: new RegExp(q, 'i') },
         { description: new RegExp(q, 'i') },
-      ];
+      ] });
     }
 
     let sort = { createdAt: -1 };
@@ -29,8 +71,9 @@ exports.listProducts = async (req, res, next) => {
     if (req.query.sort === 'priceDesc') sort = { price: -1 };
     if (req.query.sort === 'popular') sort = { bestseller: -1 };
 
-    const total = await Product.countDocuments(filter);
-    const products = await Product.find(filter).populate('category').sort(sort).skip(skip).limit(limit).lean();
+    const query = clauses.length ? { $and: [filter, ...clauses] } : filter;
+    const total = await Product.countDocuments(query).setOptions({ strictQuery: false });
+    const products = await Product.find(query).setOptions({ strictQuery: false }).populate('category').sort(sort).skip(skip).limit(limit).lean();
 
     res.json({ success: true, data: { products, total, page, pages: Math.ceil(total / limit) } });
   } catch (err) {
@@ -57,12 +100,19 @@ exports.createProduct = async (req, res, next) => {
       salePrice: req.body.salePrice ? Number(req.body.salePrice) : undefined,
       stock: req.body.stock !== undefined ? Number(req.body.stock) : undefined,
       category: req.body.category,
+      department: req.body.department,
+      productCategory: req.body.productCategory,
+      subcategory: req.body.subcategory,
       description: req.body.description,
       weight: req.body.weight !== undefined ? Number(req.body.weight) : undefined,
       brand: req.body.brand,
+      marketplaceUrl: req.body.marketplaceUrl,
+      marketplaceUrls: Array.isArray(req.body.marketplaceUrls) ? req.body.marketplaceUrls.filter(Boolean) : [],
       featured: req.body.featured,
       bestseller: req.body.bestseller,
+      homePageOrder: req.body.homePageOrder !== undefined ? Number(req.body.homePageOrder) : undefined,
       active: req.body.active,
+      createdBy: req.user.id,
     };
 
     if (!payload.name || !payload.sku || !payload.price) {
@@ -87,10 +137,10 @@ exports.createProduct = async (req, res, next) => {
 exports.updateProduct = async (req, res, next) => {
   try {
     const updates = {};
-    const fields = ['name', 'sku', 'price', 'salePrice', 'stock', 'category', 'description', 'weight', 'brand', 'featured', 'bestseller', 'active'];
+    const fields = ['name', 'sku', 'price', 'salePrice', 'stock', 'homePageOrder', 'category', 'department', 'productCategory', 'subcategory', 'description', 'primaryImage', 'weight', 'brand', 'marketplaceUrl', 'marketplaceUrls', 'featured', 'bestseller', 'active'];
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        updates[field] = field === 'price' || field === 'salePrice' || field === 'stock' || field === 'weight'
+        updates[field] = field === 'price' || field === 'salePrice' || field === 'stock' || field === 'homePageOrder' || field === 'weight'
           ? Number(req.body[field])
           : req.body[field];
       }
@@ -118,7 +168,9 @@ exports.deleteProduct = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
-    await product.remove();
+    const mediaUrls = [...product.images, product.primaryImage, product.video].filter(isProductMedia);
+    await product.deleteOne();
+    await Promise.allSettled(mediaUrls.map(cleanupUnreferencedMedia));
     res.json({ success: true, message: 'Product deleted' });
   } catch (err) {
     next(err);
@@ -129,10 +181,63 @@ exports.uploadImages = async (req, res, next) => {
   try {
     if (!req.files || !req.files.length) return res.status(400).json({ success: false, message: 'No files uploaded' });
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    if (!product) {
+      await removeStagedFiles(req.files);
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    const existingCount = product.images.length;
+    if (existingCount + req.files.length > 5) {
+      await removeStagedFiles(req.files);
+      return res.status(400).json({ success: false, message: `A product can have a maximum of 5 images. It already has ${existingCount}.` });
+    }
+    const storedIds = [];
+    try {
+      for (const file of req.files) storedIds.push(await mediaStore.uploadFile(file));
+    } catch (error) {
+      await Promise.allSettled(storedIds.map((id) => mediaStore.deleteFile(id)));
+      throw error;
+    }
     const urls = req.files.map((f) => `/uploads/products/${f.filename}`);
     product.images = product.images.concat(urls);
-    await product.save();
+    const selectedIndex = Number.parseInt(req.body.primaryImageIndex, 10);
+    if (Number.isInteger(selectedIndex) && selectedIndex >= 0 && selectedIndex < urls.length) {
+      product.primaryImage = urls[selectedIndex];
+    } else if (!product.primaryImage) {
+      product.primaryImage = product.images[0];
+    }
+    try {
+      await product.save();
+    } catch (error) {
+      await Promise.allSettled(storedIds.map((id) => mediaStore.deleteFile(id)));
+      throw error;
+    }
+    await removeStagedFiles(req.files);
+    res.json({ success: true, data: product });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.uploadVideo = async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'No video uploaded' });
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      await removeStagedFiles([req.file]);
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    const oldVideo = product.video;
+    let storedId;
+    try {
+      storedId = await mediaStore.uploadFile(req.file);
+      product.video = `/uploads/products/${req.file.filename}`;
+      await product.save();
+    } catch (error) {
+      if (storedId) await mediaStore.deleteFile(storedId).catch(() => {});
+      throw error;
+    }
+    await removeStagedFiles([req.file]);
+    if (oldVideo && oldVideo !== product.video) await cleanupUnreferencedMedia(oldVideo).catch((error) => console.warn('Old product video cleanup failed:', error.message));
     res.json({ success: true, data: product });
   } catch (err) {
     next(err);
