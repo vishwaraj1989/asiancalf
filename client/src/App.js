@@ -10,6 +10,7 @@ import MyOrders from './pages/MyOrders';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminProducts from './pages/AdminProducts';
+import AdminCategories from './pages/AdminCategories';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminOrders from './pages/AdminOrders';
 import AdminRoute from './routes/AdminRoute';
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
           <Route path="/admin/products/add" element={<AdminRoute><AdminProducts /></AdminRoute>} />
           <Route path="/admin/products/edit/:id" element={<AdminRoute><AdminProducts /></AdminRoute>} />
+          <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
         </Routes>
       </main>
       <Footer />
