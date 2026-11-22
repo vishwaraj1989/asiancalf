@@ -28,7 +28,7 @@ exports.addToCart = async (req, res, next) => {
       if (newQty > product.stock) return res.status(400).json({ success: false, message: 'Insufficient stock' });
       existing.qty = newQty;
     } else {
-      cart.items.push({ product: productId, qty: quantity, price: product.salePrice || product.price });
+      cart.items.push({ product: productId, qty: quantity, price: product.salePrice || product.discountPrice || product.price });
     }
     await cart.save();
     res.json({ success: true, data: cart });
@@ -51,7 +51,7 @@ exports.updateItem = async (req, res, next) => {
     } else {
       if (product.stock < quantity) return res.status(400).json({ success: false, message: 'Insufficient stock' });
       item.qty = quantity;
-      item.price = product.salePrice || product.price;
+      item.price = product.salePrice || product.discountPrice || product.price;
     }
     await cart.save();
     res.json({ success: true, data: cart });

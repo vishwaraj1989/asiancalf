@@ -12,11 +12,17 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await server.close();
+  if (server) await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   await teardownDB();
 });
 
 describe('Negative API cases', () => {
+  test('health requires a responsive MongoDB connection', async () => {
+    const res = await request(server).get('/health');
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ success: true, status: 'ok', database: 'connected' });
+  });
+
   test('protected endpoints reject missing token', async () => {
     const res = await request(server).get('/api/cart');
     expect(res.statusCode === 401 || res.statusCode === 403).toBeTruthy();

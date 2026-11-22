@@ -31,7 +31,7 @@ exports.createOrder = async (req, res, next) => {
     const discount = 0;
     const total = subtotal + deliveryCharge - discount;
 
-    const orderNumber = generateOrderNumber();
+    const orderNumber = await generateOrderNumber();
     const items = cart.items.map((i) => ({ product: i.product._id, name: i.product.name, sku: i.product.sku, qty: i.qty, price: i.price }));
 
     // non-transactional: decrement stock with checks, create order, delete cart; rollback on failures
@@ -101,7 +101,7 @@ exports.listOrders = async (req, res, next) => {
     if (req.query.status) filter.orderStatus = req.query.status;
     if (req.query.search) filter.orderNumber = new RegExp(req.query.search, 'i');
     const total = await Order.countDocuments(filter);
-    const orders = await Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('user');
+    const orders = await Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('user', 'name email');
     res.json({ success: true, data: { orders, total, page, pages: Math.ceil(total / limit) } });
   } catch (err) {
     next(err);
