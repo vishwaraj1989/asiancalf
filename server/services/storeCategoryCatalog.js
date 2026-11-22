@@ -2,6 +2,13 @@ const Category = require('../models/Category');
 const { storeCategoryHierarchy } = require('../data/storeCategoryCatalog');
 
 async function ensureStoreCategoryCatalog() {
+  // Earlier catalog iterations created flat leaf records. Keep those documents
+  // and product links intact, but hide only orphaned records from the new hierarchy.
+  await Category.updateMany(
+    { level: 3, $or: [{ parentId: null }, { parentId: { $exists: false } }] },
+    { $set: { isActive: false, active: false } }
+  );
+
   for (const departmentEntry of storeCategoryHierarchy) {
     const departmentSlug = `department-${departmentEntry.department.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
     const department = await Category.findOneAndUpdate(
