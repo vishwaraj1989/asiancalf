@@ -4,6 +4,7 @@ const categoryController = require('../controllers/categoryController');
 const { protect, authorize } = require('../middleware/auth');
 const { body, param } = require('express-validator');
 const validate = require('../middleware/validateRequest');
+const { upload } = require('../middleware/upload');
 
 router.get('/', categoryController.listCategories);
 router.get('/:id', [param('id').isMongoId()], validate, categoryController.getCategory);
@@ -11,5 +12,6 @@ router.get('/:id', [param('id').isMongoId()], validate, categoryController.getCa
 router.post('/', protect, authorize('admin'), [body('name').notEmpty(), body('slug').notEmpty()], validate, categoryController.createCategory);
 router.put('/:id', protect, authorize('admin'), [param('id').isMongoId()], validate, categoryController.updateCategory);
 router.delete('/:id', protect, authorize('admin'), [param('id').isMongoId()], validate, categoryController.deleteCategory);
+router.post('/:id/image', protect, authorize('admin'), [param('id').isMongoId()], validate, upload.single('image'), categoryController.uploadCategoryImage);
 
 module.exports = router;
