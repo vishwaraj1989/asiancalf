@@ -40,7 +40,26 @@ exports.listProducts = async (req, res, next) => {
       const selectedCategory = await Category.findById(req.query.category).lean();
       if (selectedCategory) {
         const namePattern = legacyCategoryMatchRegex(selectedCategory.name);
+        const descendantIds = [];
+        const descendantNames = [];
+        if (selectedCategory.level === 1) {
+          const descendants = await Category.find({ departmentId: selectedCategory._id }).lean();
+          descendantIds.push(...descendants.map((item) => item._id));
+          descendantNames.push(...descendants.map((item) => item.name));
+        } else if (selectedCategory.level === 2) {
+          const descendants = await Category.find({ parentId: selectedCategory._id }).lean();
+          descendantIds.push(...descendants.map((item) => item._id));
+          descendantNames.push(selectedCategory.name, ...descendants.map((item) => item.name));
+        } else {
+          descendantIds.push(selectedCategory._id);
+          descendantNames.push(selectedCategory.name);
+        }
+        const categoryClauses = descendantIds.map((id) => ({ category: id }));
+        const namePatterns = [...new Set(descendantNames)].map((name) => legacyCategoryMatchRegex(name)).filter(Boolean);
         clauses.push({ $or: [
+          ...categoryClauses,
+          ...namePatterns.map((pattern) => ({ productCategory: pattern })),
+          ...namePatterns.map((pattern) => ({ categoryName: pattern })),
           { category: selectedCategory._id },
           { productCategory: namePattern },
           { categoryName: namePattern },

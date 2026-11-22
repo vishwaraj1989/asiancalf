@@ -17,7 +17,7 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export default function AdminProducts() {
   const { id: routeProductId } = useParams();
   const { token } = useAuth();
-  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories({ includeInactive: true });
   const frontImageInput = useRef(null), additionalImagesInput = useRef(null), videoInput = useRef(null);
   const [form, setForm] = useState(initialForm), [frontImage, setFrontImage] = useState(null), [additionalImages, setAdditionalImages] = useState([]), [video, setVideo] = useState(null), [editingProduct, setEditingProduct] = useState(null), [products, setProducts] = useState([]), [toast, setToast] = useState(''), [error, setError] = useState(''), [saving, setSaving] = useState(false);
   const [categoryAssignments, setCategoryAssignments] = useState({});
