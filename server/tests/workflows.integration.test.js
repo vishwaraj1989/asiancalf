@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const { randomBytes } = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const request = require('supertest');
@@ -17,10 +18,9 @@ let orderId;
 let imageUrl;
 const adminEmail = 'workflow-admin@test.local';
 const customerEmail = 'workflow-customer@test.local';
-const testSecret = 'workflow-only-jwt-secret';
 
 beforeAll(async () => {
-  process.env.JWT_SECRET = testSecret;
+  process.env.JWT_SECRET = randomBytes(32).toString('hex');
   await setupDB();
   server = app.listen(0);
 
