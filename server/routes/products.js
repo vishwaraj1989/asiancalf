@@ -8,7 +8,7 @@ const validate = require('../middleware/validateRequest');
 
 router.get('/', [
 	query('search').optional().isString(),
-	query('category').optional().isString(),
+	query('category').optional().isMongoId(),
 	query('featured').optional().isBoolean(),
 	query('page').optional().isInt({ min: 1 }),
 ], validate, productController.listProducts);

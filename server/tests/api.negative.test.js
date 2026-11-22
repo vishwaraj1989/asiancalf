@@ -12,7 +12,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await server.close();
+  if (server) await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   await teardownDB();
 });
 

@@ -72,7 +72,7 @@ exports.setupAdmin = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Admin account setup completed. Remove ADMIN_SETUP_SECRET from the Render environment now.',
+      message: 'Admin account setup completed. Remove ADMIN_SETUP_SECRET from the backend environment now.',
     });
   } catch (error) {
     return next(error);

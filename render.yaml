@@ -3,6 +3,8 @@ services:
     name: asiancalf
     runtime: node
     rootDir: server
+    branch: feature/api-audit-tests
+    autoDeployTrigger: commit
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /health

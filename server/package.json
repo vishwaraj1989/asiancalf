@@ -10,7 +10,11 @@
     "admin:ensure": "node scripts/ensureAdmin.js",
     "media:migrate:check": "node scripts/migrateUploadsToGridFS.js",
     "media:migrate:apply": "node scripts/migrateUploadsToGridFS.js --apply",
-    "test": "jest --runInBand"
+    "categories:migration:preview": "node scripts/migrateProductCategories.js",
+    "categories:migration:apply": "node scripts/migrateProductCategories.js --apply",
+    "test": "jest --runInBand",
+    "test:integration": "jest --runInBand --runTestsByPath tests/order.test.js tests/api.negative.test.js tests/workflows.integration.test.js",
+    "test:all": "jest --runInBand --runTestsByPath tests/adminSetup.test.js tests/api.negative.test.js tests/auth.authorization.test.js tests/order.test.js tests/productMediaHeaders.test.js tests/upload.test.js tests/workflows.integration.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

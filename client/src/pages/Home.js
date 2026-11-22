@@ -1,15 +1,15 @@
-import { apiUrl, mediaUrl } from '../utils/api';
-import { Alert, Box, Card, CardActionArea, CardContent, CircularProgress, Typography } from '@mui/material';
+import { apiUrl } from '../utils/api';
+import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-
-const imageUrl = mediaUrl;
-const priceFor = (product) => product.salePrice || product.discountPrice || product.price;
+import ProductGridCard from '../components/ProductGridCard';
+import { useCategories } from '../hooks/useCategories';
 
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
 
   useEffect(() => {
     const loadAllProducts = async () => {
@@ -36,22 +36,6 @@ export default function Home() {
     });
   const departments = [...new Set(productCards.map(({ product }) => product.department || 'Other products'))];
 
-  const renderProduct = ({ product, image }) => (
-    <Card key={product._id} className="photo-card">
-      <CardActionArea component={RouterLink} to={`/products/${product._id}`}>
-        <Box className="product-image-frame"><img className="uploaded-product-image" src={imageUrl(image)} alt={product.name} /></Box>
-        <CardContent className="product-card-content">
-          <Typography className="product-card-category">{product.productCategory || product.department || 'Featured item'}</Typography>
-          <Typography className="product-card-name">{product.name}</Typography>
-          <Box className="product-card-bottom">
-            <Typography className="product-card-price">₹{Number(priceFor(product) || 0).toLocaleString('en-IN')}</Typography>
-            <Typography className="product-card-view">View details →</Typography>
-          </Box>
-        </CardContent>
-      </CardActionArea>
-    </Card>
-  );
-
   return (
     <div className="page-container">
       <section className="catalog-section">
@@ -64,12 +48,20 @@ export default function Home() {
         </Box>
         {loading && <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>}
         {error && <Alert severity="error">{error} Check the backend API configuration.</Alert>}
+        <Box component="section" sx={{ mb: 4 }}>
+          <Typography variant="h5" component="h2" sx={{ mb: 2 }}>Browse categories</Typography>
+          {categoriesLoading && <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} /></Box>}
+          {categoriesError && <Alert severity="error">{categoriesError}</Alert>}
+          {!categoriesLoading && !categoriesError && categories.length === 0 && <Alert severity="info">No categories are available yet.</Alert>}
+          {!categoriesLoading && !categoriesError && categories.length > 0 && <Box className="category-grid">{categories.map((category) => <Button key={category._id} component={RouterLink} to={`/products?category=${encodeURIComponent(category._id)}`} className="category-tile">{category.name}</Button>)}</Box>}
+        </Box>
         {!loading && !error && productCards.length === 0 && <Alert severity="info">No products are available right now.</Alert>}
+        {!loading && !error && departments.some((department) => department !== 'Other products') && <Box className="home-department-nav" aria-label="Browse departments">{departments.filter((department) => department !== 'Other products').map((department) => <Button key={department} component={RouterLink} to={`/products?department=${encodeURIComponent(department)}`} variant="outlined">{department}</Button>)}</Box>}
         {!loading && !error && departments.map((department) => (
           <Box component="section" className="home-department-section" key={department}>
-            <Typography component="h2" className="home-department-title">{department}</Typography>
+            <Typography component={RouterLink} to={`/products?department=${encodeURIComponent(department)}`} className="home-department-title">{department} →</Typography>
             <div className="photo-grid">
-              {productCards.filter(({ product }) => (product.department || 'Other products') === department).map(renderProduct)}
+              {productCards.filter(({ product }) => (product.department || 'Other products') === department).map(({ product, image }) => <ProductGridCard key={product._id} product={product} image={image} />)}
             </div>
           </Box>
         ))}

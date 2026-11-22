@@ -117,7 +117,7 @@ describe('one-time protected admin setup', () => {
       .send({ password: adminPassword });
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ success: true, message: 'Admin account setup completed. Remove ADMIN_SETUP_SECRET from the Render environment now.' });
+    expect(response.body).toEqual({ success: true, message: 'Admin account setup completed. Remove ADMIN_SETUP_SECRET from the backend environment now.' });
     expect(JSON.stringify(response.body)).not.toContain(setupSecret);
     expect(JSON.stringify(response.body)).not.toContain(adminPassword);
     expect(User.create.mock.calls[0][0].email).toBe(configuredEmail);

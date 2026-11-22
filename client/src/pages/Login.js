@@ -1,12 +1,13 @@
 import { apiUrl } from '../utils/api';
 import { Alert, Box, Button, TextField, Typography } from '@mui/material';
 import { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,7 +18,8 @@ export default function Login() {
       const body = await response.json();
       if (!response.ok || !body.success) throw new Error(body.message || 'Sign in failed.');
       signIn(body.data);
-      navigate(body.data.user.role === 'admin' ? '/admin/products' : body.data.user.role === 'seller' ? '/seller/dashboard' : '/');
+      const requestedPath = location.state?.from;
+      navigate(requestedPath ? `${requestedPath.pathname || '/'}${requestedPath.search || ''}` : body.data.user.role === 'admin' ? '/admin/dashboard' : body.data.user.role === 'seller' ? '/seller/dashboard' : '/');
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   };
   return <Box className="amazon-login-page">
@@ -39,7 +41,7 @@ export default function Login() {
         <Typography className="amazon-login-help">› <RouterLink to="/register">Need help?</RouterLink></Typography>
       </Box>
       <Box className="amazon-login-new"><Typography>New to AsianCalf?</Typography></Box>
-      <Button component={RouterLink} to="/register" variant="outlined" fullWidth className="amazon-login-create">Create your AsianCalf account</Button>
+        <Button component={RouterLink} to="/register" state={location.state} variant="outlined" fullWidth className="amazon-login-create">Create your AsianCalf account</Button>
     </Box>
   </Box>;
 }

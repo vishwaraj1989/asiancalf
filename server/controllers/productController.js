@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const { legacyCategoryMatchRegex } = require('../services/categoryMigration');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const mediaStore = require('../services/productMediaStorage');
@@ -34,7 +35,21 @@ exports.listProducts = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const filter = { active: true };
-    if (req.query.category) filter.category = req.query.category;
+    const clauses = [];
+    if (req.query.category) {
+      const selectedCategory = await Category.findById(req.query.category).lean();
+      if (selectedCategory) {
+        const namePattern = legacyCategoryMatchRegex(selectedCategory.name);
+        clauses.push({ $or: [
+          { category: selectedCategory._id },
+          { productCategory: namePattern },
+          { categoryName: namePattern },
+          { department: namePattern },
+        ] });
+      } else {
+        filter.category = req.query.category;
+      }
+    }
     if (req.query.featured) filter.featured = req.query.featured === 'true' || req.query.featured === '1';
     if (req.query.availability === 'inStock') filter.stock = { $gt: 0 };
     if (req.query.priceMin || req.query.priceMax) {
@@ -44,11 +59,11 @@ exports.listProducts = async (req, res, next) => {
     }
     if (req.query.search) {
       const q = req.query.search;
-      filter.$or = [
+      clauses.push({ $or: [
         { name: new RegExp(q, 'i') },
         { sku: new RegExp(q, 'i') },
         { description: new RegExp(q, 'i') },
-      ];
+      ] });
     }
 
     let sort = { createdAt: -1 };
@@ -56,8 +71,9 @@ exports.listProducts = async (req, res, next) => {
     if (req.query.sort === 'priceDesc') sort = { price: -1 };
     if (req.query.sort === 'popular') sort = { bestseller: -1 };
 
-    const total = await Product.countDocuments(filter);
-    const products = await Product.find(filter).populate('category').sort(sort).skip(skip).limit(limit).lean();
+    const query = clauses.length ? { $and: [filter, ...clauses] } : filter;
+    const total = await Product.countDocuments(query).setOptions({ strictQuery: false });
+    const products = await Product.find(query).setOptions({ strictQuery: false }).populate('category').sort(sort).skip(skip).limit(limit).lean();
 
     res.json({ success: true, data: { products, total, page, pages: Math.ceil(total / limit) } });
   } catch (err) {

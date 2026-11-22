@@ -1,7 +1,7 @@
 import { apiUrl } from '../utils/api';
 import { Alert, Box, Button, TextField, Typography } from '@mui/material';
 import { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const initialForm = { name: '', mobile: '', email: '', password: '', confirmPassword: '' };
@@ -9,6 +9,7 @@ const initialForm = { name: '', mobile: '', email: '', password: '', confirmPass
 export default function Register() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,7 +40,8 @@ export default function Register() {
       const body = await response.json();
       if (!response.ok || !body.success) throw new Error(body.message || 'Could not create your account.');
       signIn(body.data);
-      navigate('/');
+      const requestedPath = location.state?.from;
+      navigate(requestedPath ? `${requestedPath.pathname || '/'}${requestedPath.search || ''}` : '/');
     } catch (err) {
       setError(err.message || 'Could not create your account.');
     } finally {
@@ -75,7 +77,7 @@ export default function Register() {
         </Box>
         <Button className="amazon-login-submit" type="submit" fullWidth disabled={loading}>{loading ? 'Creating account...' : 'Create your AsianCalf account'}</Button>
         <Typography className="amazon-login-terms">By creating an account, you agree to AsianCalf&apos;s Conditions of Use and Privacy Notice.</Typography>
-        <Typography className="amazon-login-help">Already have an account? <RouterLink to="/login">Sign in</RouterLink></Typography>
+        <Typography className="amazon-login-help">Already have an account? <RouterLink to="/login" state={location.state}>Sign in</RouterLink></Typography>
       </Box>
     </Box>
   </Box>;
