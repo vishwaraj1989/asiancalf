@@ -1,10 +1,13 @@
 const { storeCategoryCatalog } = require('../data/storeCategoryCatalog');
 
-jest.mock('../models/Category', () => ({ findOneAndUpdate: jest.fn().mockImplementation(async (_filter, update) => {
-  if (update.$set.level === 1) return { _id: 'department-id', name: update.$set.name, level: 1 };
-  if (update.$set.level === 2) return { _id: 'category-id', name: update.$set.name, level: 2 };
-  return { _id: 'subcategory-id', level: 3 };
-}) }));
+jest.mock('../models/Category', () => ({
+  updateMany: jest.fn().mockResolvedValue({ modifiedCount: 0 }),
+  findOneAndUpdate: jest.fn().mockImplementation(async (_filter, update) => {
+    if (update.$set.level === 1) return { _id: 'department-id', name: update.$set.name, level: 1 };
+    if (update.$set.level === 2) return { _id: 'category-id', name: update.$set.name, level: 2 };
+    return { _id: 'subcategory-id', level: 3 };
+  }),
+}));
 const Category = require('../models/Category');
 const { ensureStoreCategoryCatalog } = require('../services/storeCategoryCatalog');
 
@@ -34,6 +37,10 @@ describe('AsianCalf store category catalog', () => {
 
   test('upserts the full catalog without overwriting existing category names', async () => {
     await ensureStoreCategoryCatalog();
+    expect(Category.updateMany).toHaveBeenCalledWith(
+      { level: 3, $or: [{ parentId: null }, { parentId: { $exists: false } }] },
+      { $set: { isActive: false, active: false } }
+    );
     expect(Category.findOneAndUpdate).toHaveBeenCalled();
     expect(Category.findOneAndUpdate.mock.calls.length).toBeGreaterThan(100);
     const departmentCall = Category.findOneAndUpdate.mock.calls.find(([, update]) => update.$set.level === 1);
